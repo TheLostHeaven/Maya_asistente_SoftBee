@@ -63,6 +63,34 @@ def get_db_connection():
         hablar(f"Error de MySQL: {err.msg}")
         return None
 
+def verificar_tablas_colmenas():
+    """Verifica que existan las tablas para todas las colmenas (1-10)"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+        
+    try:
+        cursor = conn.cursor()
+        
+        for i in range(1, 11):
+            table_name = f"colmena_{i}"
+            cursor.execute(f"""
+            CREATE TABLE IF NOT EXISTS {table_name} (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+                numero_colmena INT NOT NULL
+            )
+            """)
+        
+        conn.commit()
+        return True
+    except Error as err:
+        print(f"Error al verificar tablas: {err}")
+        return False
+    finally:
+        if conn.is_connected():
+            conn.close()
+            
 def get_column_info(table_name):
     """Obtiene información de las columnas de una tabla"""
     conn = get_db_connection()
@@ -635,171 +663,41 @@ def reordenar_preguntas(preguntas):
         elif opcion == "4":
             print("\nOrden actual:")
             for i, p in enumerate(preguntas, 1):
-                print(f"{i}. {p['pregunta']} (Orden: {p['orden']})")
+                print(f"{i}. {p['pregunta']} (Orden: {p['orden']}")
                 
         elif opcion == "5":
             return
         else:
             print("Opción no válida")
 
-# ================= MONITOREO POR VOZ =================
-def iniciar_monitoreo_voz():
-    """Función principal para el monitoreo por voz"""
-    hablar("Bienvenido al sistema de monitoreo de colmenas por voz")
+def palabras_a_numero(texto):
+    """Convierte palabras de números en español a valores numéricos"""
+    numeros = {
+        'cero': 0, 'uno': 1, 'un': 1, 'una': 1,
+        'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5,
+        'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9,
+        'diez': 10, 'once': 11, 'doce': 12, 'trece': 13,
+        'catorce': 14, 'quince': 15, 'dieciseis': 16, 'dieciséis': 16,
+        'diecisiete': 17, 'dieciocho': 18, 'diecinueve': 19,
+        'veinte': 20, 'veintiuno': 21, 'veintidós': 22, 'veintitrés': 23,
+        'veinticuatro': 24, 'veinticinco': 25, 'veintiséis': 26,
+        'veintisiete': 27, 'veintiocho': 28, 'veintinueve': 29,
+        'treinta': 30, 'cuarenta': 40, 'cincuenta': 50,
+        'sesenta': 60, 'setenta': 70, 'ochenta': 80,
+        'noventa': 90, 'cien': 100
+    }
     
-    # Cargar preguntas desde la BD (siempre fresco, no cache)
-    preguntas = cargar_preguntas_desde_bd()
-    if not preguntas:
-        hablar("No se pudieron cargar las preguntas. Por favor, configure el sistema primero.")
-        return
+    # Manejar combinaciones como "cuarenta y cinco"
+    if ' y ' in texto:
+        partes = texto.split(' y ')
+        if len(partes) == 2:
+            num1 = numeros.get(partes[0].lower(), 0)
+            num2 = numeros.get(partes[1].lower(), 0)
+            return num1 + num2
     
-    # Filtrar solo preguntas activas y ordenar
-    preguntas_activas = [p for p in preguntas if p.get('activa', True)]
-    preguntas_activas.sort(key=lambda x: x['orden'])
-    
-    hablar("Por favor indique el número de colmena a monitorear (del 1 al 10)")
-    colmena = None
-    
-    while colmena is None:
-        respuesta = escuchar()
-        if respuesta:
-            try:
-                # Mapeo de palabras a números
-                numeros = {
-                    'uno': 1, 'un': 1, 'una': 1,
-                    'dos': 2,
-                    'tres': 3,
-                    'cuatro': 4,
-                    'cinco': 5,
-                    'seis': 6,
-                    'siete': 7,
-                    'ocho': 8,
-                    'nueve': 9,
-                    'diez': 10
-                }
-                
-                # Buscar número en texto o palabra
-                num = None
-                if respuesta in numeros:
-                    num = numeros[respuesta]
-                else:
-                    # Intentar extraer número directamente
-                    match = re.search(r'\d+', respuesta)
-                    if match:
-                        num = int(match.group())
-                
-                if num and 1 <= num <= 10:
-                    colmena = num
-                else:
-                    hablar("Por favor indique un número entre 1 y 10")
-            except (ValueError, AttributeError):
-                hablar("No entendí el número de colmena. Por favor dígalo nuevamente.")
-    
-    hablar(f"Monitoreando colmena {colmena}. Empezaremos con las preguntas.")
-    
-    respuestas = {'colmena': colmena, 'fecha_registro': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-    
-    for pregunta in preguntas_activas:
-        # Verificar si la pregunta depende de otra
-        if 'depende_de' in pregunta and pregunta['depende_de']:
-            pregunta_dependiente = next((p for p in preguntas_activas if p['id'] == pregunta['depende_de']), None)
-            if pregunta_dependiente:
-                respuesta_dependencia = respuestas.get(pregunta_dependiente['id'])
-                opcion_valida = None
-                
-                if respuesta_dependencia:
-                    # Buscar si la respuesta coincide con alguna opción
-                    for opcion in pregunta_dependiente.get('opciones', []):
-                        if opcion.lower() in respuesta_dependencia.lower():
-                            opcion_valida = opcion
-                            break
-                
-                if not opcion_valida:
-                    # Saltar esta pregunta si no se cumple la dependencia
-                    continue
-        
-        pregunta_respondida = False
-        
-        while not pregunta_respondida:
-            # Leer la pregunta
-            hablar(pregunta['pregunta'])
-            
-            # Si es de opciones, mencionar las opciones disponibles
-            if pregunta['tipo'] == 'opcion':
-                hablar(f"Opciones disponibles: {', '.join(pregunta['opciones'])}")
-            
-            respuesta = escuchar()
-            if not respuesta:
-                hablar("No capté su respuesta. Por favor repita.")
-                continue
-                
-            # Validar respuesta según el tipo de pregunta
-            if pregunta['tipo'] == 'numero':
-                try:
-                    # Mapeo de palabras a números para las respuestas
-                    numeros_respuesta = {
-                        'uno': 1, 'un': 1, 'una': 1,
-                        'dos': 2, 'do': 2,
-                        'tres': 3, 'tre': 3,
-                        'cuatro': 4, 'cuatro': 4,
-                        'cinco': 5, 'cinco': 5,
-                        'seis': 6, 'sei': 6,
-                        'siete': 7, 'siete': 7,
-                        'ocho': 8, 'ocho': 8,
-                        'nueve': 9, 'nueve': 9,
-                        'diez': 10, 'diez': 10
-                    }
-                    
-                    num = None
-                    if respuesta in numeros_respuesta:
-                        num = numeros_respuesta[respuesta]
-                    else:
-                        match = re.search(r'\d+', respuesta)
-                        if match:
-                            num = int(match.group())
-                    
-                    if num is not None:
-                        min_val = pregunta.get('min', 0)
-                        max_val = pregunta.get('max', 100)
-                        
-                        if min_val <= num <= max_val:
-                            respuestas[pregunta['id']] = num
-                            pregunta_respondida = True
-                        else:
-                            hablar(f"El valor debe estar entre {min_val} y {max_val}. Por favor intente nuevamente.")
-                    else:
-                        hablar("No entendí el número. Por favor responda con un valor numérico.")
-                except (ValueError, AttributeError):
-                    hablar("No entendí el número. Por favor responda con un valor numérico.")
-                    
-            elif pregunta['tipo'] == 'opcion':
-                respuesta = respuesta.lower()
-                opciones = [o.lower() for o in pregunta['opciones']]
-                
-                # Buscar coincidencia con las opciones
-                for i, op in enumerate(opciones):
-                    if op in respuesta:
-                        respuestas[pregunta['id']] = pregunta['opciones'][i]
-                        pregunta_respondida = True
-                        break
-                
-                if not pregunta_respondida:
-                    hablar(f"Opción no válida. Las opciones son: {', '.join(pregunta['opciones'])}")
-                    hablar("Por favor responda con una de las opciones mencionadas")
-                    
-            else:  # texto
-                respuestas[pregunta['id']] = respuesta
-                pregunta_respondida = True
-    
-    # Guardar respuestas en la base de datos
-    if guardar_respuestas(colmena, respuestas):
-        hablar("¡Gracias! Los datos de la colmena han sido registrados correctamente.")
-    else:
-        hablar("Hubo un error al guardar los datos. Por favor intente nuevamente.")
-    
-    # Al finalizar, mostrar mensaje y volver al menú
-    hablar("Monitoreo finalizado. Volviendo al menú principal.")
+    return numeros.get(texto.lower(), None)            
 
+# ================= MONITOREO POR VOZ =================
 def guardar_respuestas(colmena, respuestas):
     """Guarda las respuestas en la base de datos"""
     conn = get_db_connection()
@@ -811,11 +709,37 @@ def guardar_respuestas(colmena, respuestas):
         
         # Preparar consulta SQL
         table_name = f"colmena_{colmena}"
-        columns = []
-        values = []
+        columns = ['fecha_registro', 'numero_colmena']  # Añadimos numero_colmena
+        values = [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), colmena]  # Añadimos el número
+        
+        # Verificar y agregar columnas que no existen
+        cursor.execute(f"SHOW COLUMNS FROM {table_name}")
+        existing_columns = {row[0] for row in cursor.fetchall()}
+        
+        # Asegurarnos que numero_colmena exista en la tabla
+        if 'numero_colmena' not in existing_columns:
+            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN numero_colmena INT")
+            conn.commit()
+            existing_columns.add('numero_colmena')
         
         for key, value in respuestas.items():
-            if key != 'colmena':  # No necesitamos guardar el número de colmena como campo
+            if key != 'colmena':  # No necesitamos guardar el número de colmena como campo adicional
+                if key not in existing_columns:
+                    try:
+                        col_type = "VARCHAR(255)"
+                        if isinstance(value, int):
+                            col_type = "INT"
+                        elif isinstance(value, float):
+                            col_type = "DECIMAL(10,2)"
+                            
+                        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {key} {col_type}")
+                        conn.commit()
+                        existing_columns.add(key)
+                        print(f"Se agregó la columna {key} a la tabla {table_name}")
+                    except Error as err:
+                        print(f"No se pudo agregar columna {key}: {err}")
+                        continue
+                
                 columns.append(key)
                 values.append(value)
         
@@ -833,6 +757,114 @@ def guardar_respuestas(colmena, respuestas):
     finally:
         if conn.is_connected():
             conn.close()
+
+def iniciar_monitoreo_voz():
+    """Función principal para el monitoreo por voz"""
+    hablar("Bienvenido al sistema de monitoreo de colmenas por voz")
+    
+    # Verificar que existan las tablas
+    if not verificar_tablas_colmenas():
+        hablar("Error en la base de datos. No se pueden verificar las tablas.")
+        return
+    
+    # Cargar preguntas configuradas
+    preguntas = cargar_preguntas_desde_bd()
+    if not preguntas:
+        hablar("No se pudieron cargar las preguntas de configuración")
+        return
+    
+    hablar("Por favor indique el número de colmena a monitorear (del 1 al 10)")
+    colmena = None
+    
+    while colmena is None:
+        respuesta = escuchar()
+        if respuesta:
+            try:
+                num = int(respuesta)
+                if 1 <= num <= 10:
+                    colmena = num
+                else:
+                    hablar("Por favor indique un número entre 1 y 10")
+            except ValueError:
+                # Intentar convertir palabras a números
+                num = palabras_a_numero(respuesta)
+                if num is not None and 1 <= num <= 10:
+                    colmena = num
+                else:
+                    hablar("No entendí el número de colmena. Por favor dígalo nuevamente.")
+    
+    hablar(f"Monitoreando colmena {colmena}. Empezaremos con las preguntas.")
+    
+    # Filtrar preguntas activas y ordenarlas
+    preguntas_activas = [p for p in preguntas if p.get('activa', True)]
+    preguntas_activas.sort(key=lambda x: x.get('orden', 0))
+    
+    respuestas = {'colmena': colmena}
+    
+    for pregunta in preguntas_activas:
+        # Verificar dependencias
+        if pregunta.get('depende_de'):
+            pregunta_dependencia = next((p for p in preguntas_activas if p['id'] == pregunta['depende_de']), None)
+            if pregunta_dependencia and pregunta_dependencia['id'] in respuestas:
+                valor_dependencia = respuestas[pregunta_dependencia['id']]
+                if pregunta_dependencia['tipo'] == 'opcion' and valor_dependencia not in pregunta_dependencia.get('opciones', []):
+                    continue  # Saltar esta pregunta si no cumple la dependencia
+        
+        pregunta_respondida = False
+        
+        while not pregunta_respondida:
+            hablar(pregunta['pregunta'])
+            
+            if pregunta['tipo'] == 'opcion':
+                hablar(f"Opciones disponibles: {', '.join(pregunta['opciones'])}")
+            elif pregunta['tipo'] == 'numero':
+                hablar(f"Por favor responda con un número entre {pregunta.get('min', 0)} y {pregunta.get('max', 100)}")
+            
+            respuesta = escuchar()
+            if not respuesta:
+                hablar("No capté su respuesta. Por favor repita.")
+                continue
+                
+            if pregunta['tipo'] == 'opcion':
+                respuesta = respuesta.lower()
+                opciones = [o.lower() for o in pregunta['opciones']]
+                
+                for i, op in enumerate(opciones):
+                    if op in respuesta:
+                        respuestas[pregunta['id']] = pregunta['opciones'][i]
+                        pregunta_respondida = True
+                        break
+                
+                if not pregunta_respondida:
+                    hablar(f"Opción no válida. Las opciones son: {', '.join(pregunta['opciones'])}")
+                    
+            elif pregunta['tipo'] == 'numero':
+                try:
+                    num = int(respuesta)
+                    min_val = pregunta.get('min', 0)
+                    max_val = pregunta.get('max', 100)
+                    if min_val <= num <= max_val:
+                        respuestas[pregunta['id']] = num
+                        pregunta_respondida = True
+                    else:
+                        hablar(f"El valor debe estar entre {min_val} y {max_val}")
+                except ValueError:
+                    # Intentar convertir palabras a números
+                    num = palabras_a_numero(respuesta)
+                    if num is not None and pregunta.get('min', 0) <= num <= pregunta.get('max', 100):
+                        respuestas[pregunta['id']] = num
+                        pregunta_respondida = True
+                    else:
+                        hablar("No entendí el número. Por favor responda con un valor numérico.")
+            else:  # Tipo texto
+                respuestas[pregunta['id']] = respuesta
+                pregunta_respondida = True
+    
+    # Guardar respuestas
+    if guardar_respuestas(colmena, respuestas):
+        hablar("Datos guardados correctamente. Monitoreo completado.")
+    else:
+        hablar("Hubo un error al guardar los datos. Por favor intente nuevamente.")
 
 # ================= MENÚ DE CONFIGURACIÓN =================
 def menu_configuracion():
@@ -921,7 +953,7 @@ def main():
         opcion = input("Seleccione una opción (1-3): ").strip()
         
         if opcion == "1":
-            iniciar_monitoreo_voz()  # Siempre carga preguntas frescas desde BD
+            iniciar_monitoreo_voz()
         elif opcion == "2":
             menu_configuracion()
         elif opcion == "3":

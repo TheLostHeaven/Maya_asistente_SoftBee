@@ -1,0 +1,58 @@
+{
+  "preguntas": [
+    {
+      "id": "numero_colmena",
+      "pregunta": "Número de colmena",
+      "tipo": "numero",
+      "min": 1,
+      "max": 10,
+      "obligatoria": true
+    },
+    {
+      "id": "poblacion_abejas",
+      "pregunta": "Población de abejas",
+      "tipo": "opcion",
+      "opciones": [
+        "Baja",
+        "Media",
+        "Alta"
+      ],
+      "obligatoria": true
+    },
+    {
+      "id": "actividad_piqueras",
+      "pregunta": "Actividad en piqueras",
+      "tipo": "opcion",
+      "opciones": [
+        "Baja",
+        "Media",
+        "Alta"
+      ],
+      "obligatoria": true
+    },
+    {
+      "id": "pregunta_20250515115334",
+      "pregunta": "Estado de la abeja reina",
+      "tipo": "opcion",
+      "obligatoria": false,
+      "opciones": [
+        "Presente",
+        "Saludable",
+        "Enferma",
+        "No presente"
+      ]
+    }
+  ],
+  "preguntas_camara_produccion": [
+    {
+      "id": "tipo_camara",
+      "pregunta": "Tipo de cámara",
+      "tipo": "opcion",
+      "opciones": [
+        "Media alza",
+        "Alza profunda"
+      ],
+      "obligatoria": true
+    }
+  ]
+}

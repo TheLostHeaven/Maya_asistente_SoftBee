@@ -8,47 +8,154 @@ import mysql.connector
 from datetime import datetime
 from dotenv import load_dotenv
 import re
-import winsound
-import tempfile
 import warnings
-import scipy.io.wavfile as wav
 from mysql.connector import Error
 import json
+import winsound
+import threading
+from fuzzywuzzy import fuzz
 
 # Configuración inicial
 load_dotenv()
 engine = pyttsx3.init()
-engine.setProperty('rate', 160)
+engine.setProperty('rate', 180)
 engine.setProperty('voice', 'spanish')
 warnings.filterwarnings("ignore", message="FP16 is not supported on CPU")
 
 # ================= CONFIGURACIÓN WHISPER =================
-WHISPER_MODEL = "base"
+WHISPER_MODEL = "small"
 model = whisper.load_model(WHISPER_MODEL)
 
 # ================= FUNCIONES DE AUDIO =================
 def hablar(texto):
+    """Función para sintetizar voz"""
     print(f"ASISTENTE: {texto}")
-    engine.say(texto)
+    threading.Thread(target=engine.say, args=(texto,)).start()
     engine.runAndWait()
 
-def escuchar(duracion=5):
+def emitir_pitido(frecuencia=1000, duracion=200):
+    """Emite un pitido para indicar que el sistema está escuchando"""
+    winsound.Beep(frecuencia, duracion)
+
+def escuchar(duracion=3):
+    """Función para capturar audio y transcribirlo"""
     try:
         samplerate = 16000
+        
+        threading.Thread(target=emitir_pitido).start()
+        
         print("\n[ESCUCHANDO...]")
-        audio = sd.rec(int(duracion * samplerate), samplerate=samplerate, channels=1, dtype='float32')
+        audio = sd.rec(
+            int(duracion * samplerate),
+            samplerate=samplerate,
+            channels=1,
+            dtype='float32'
+        )
+        
         sd.wait()
+        
         audio_np = audio.flatten()
         audio_np = audio_np / np.max(np.abs(audio_np))
-        result = model.transcribe(audio_np.astype(np.float32), language="es")
+        
+        result = model.transcribe(
+            audio_np.astype(np.float32),
+            language="es",
+            temperature=0.0,
+            best_of=1,
+            beam_size=2
+        )
+        
         texto = result["text"].strip()
         if texto:
             print(f"USUARIO: {texto}")
             return texto.lower()
         return None
+        
     except Exception as e:
-        hablar(f"Error al escuchar: {str(e)}")
+        print(f"Error al escuchar: {str(e)}")
         return None
+
+# ================= FUNCIONES DE CONVERSIÓN =================
+def palabras_a_numero(texto):
+    """Convierte palabras de números en español a valores numéricos"""
+    if not texto:
+        return None
+        
+    texto = re.sub(r'[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]', '', texto.lower()).strip()
+    
+    numeros = {
+        'cero': 0, 'sero': 0, 'xero': 0,
+        'uno': 1, 'un': 1, 'una': 1, 'primero': 1, 'primer': 1, 'úno': 1, 'ino': 1,
+        'dos': 2, 'segundo': 2, 'dós': 2, 'tres': 3, 'tercero': 3, 'tercer': 3, 'trés': 3,
+        'cuatro': 4, 'cuarto': 4, 'kuatro': 4, 'quatro': 4,
+        'cinco': 5, 'quinto': 5, 'sinko': 5, 'zinko': 5,
+        'seis': 6, 'sexto': 6, 'séis': 6, 'seyis': 6,
+        'siete': 7, 'séptimo': 7, 'síete': 7, 'ciete': 7,
+        'ocho': 8, 'octavo': 8, 'ócho': 8, 'otcho': 8,
+        'nueve': 9, 'noveno': 9, 'nuéve': 9, 'nuebe': 9,
+        'diez': 10, 'décimo': 10, 'diéz': 10, 'dies': 10,
+        'once': 11, 'undécimo': 11, 'ónce': 11, 'onse': 11,
+        'doce': 12, 'duodécimo': 12, 'dóce': 12, 'dose': 12,
+        'trece': 13, 'tréce': 13, 'trese': 13,
+        'catorce': 14, 'katorce': 14,
+        'quince': 15, 'kinse': 15,
+        'dieciseis': 16, 'dieciséis': 16, 'diez y seis': 16,
+        'diecisiete': 17, 'diez y siete': 17,
+        'dieciocho': 18, 'diez y ocho': 18,
+        'diecinueve': 19, 'diez y nueve': 19,
+        'veinte': 20, 'veintiuno': 21, 'veintiún': 21, 'veintiuna': 21,
+        'veintidós': 22, 'veintitrés': 23, 'veinticuatro': 24,
+        'veinticinco': 25, 'veintiséis': 26, 'veintisiete': 27,
+        'veintiocho': 28, 'veintinueve': 29,
+        'treinta': 30, 'cuarenta': 40, 'cincuenta': 50,
+        'sesenta': 60, 'setenta': 70, 'ochenta': 80,
+        'noventa': 90, 'cien': 100, 'ciento': 100,
+        'doscientos': 200, 'trescientos': 300, 'cuatrocientos': 400,
+        'quinientos': 500, 'seiscientos': 600, 'setecientos': 700,
+        'ochocientos': 800, 'novecientos': 900, 'mil': 1000
+    }
+    
+    if texto in numeros:
+        return numeros[texto]
+    
+    for palabra, num in numeros.items():
+        if fuzz.ratio(texto, palabra) > 80:
+            return num
+    
+    if 'y' in texto:
+        partes = [p.strip() for p in texto.split('y')]
+        if len(partes) == 2:
+            num1 = numeros.get(partes[0], 0)
+            num2 = numeros.get(partes[1], 0)
+            return num1 + num2
+    
+    return None
+
+def confirmacion_reconocida(respuesta, palabra_clave):
+    """Reconoce confirmaciones con tolerancia a errores"""
+    umbral_similitud = 70
+    
+    variaciones = {
+        'confirmar': ['confirmar', 'confirma', 'confirmo', 'confirmado', 'confirmad', 'conforme', 'confirmas'],
+        'cancelar': ['cancelar', 'cancela', 'cancelado', 'cancelo', 'cancelad', 'cancelen']
+    }
+    
+    respuesta = respuesta.lower().strip()
+    
+    if palabra_clave in respuesta:
+        return True
+    
+    if any(v in respuesta for v in variaciones.get(palabra_clave, [])):
+        return True
+    
+    if fuzz.ratio(respuesta, palabra_clave) > umbral_similitud:
+        return True
+    
+    for variacion in variaciones.get(palabra_clave, []):
+        if fuzz.ratio(respuesta, variacion) > umbral_similitud:
+            return True
+    
+    return False
 
 # ================= FUNCIONES DE BASE DE DATOS =================
 def get_db_connection():
@@ -64,7 +171,7 @@ def get_db_connection():
         return None
 
 def verificar_tablas_colmenas():
-    """Verifica que existan las tablas para todas las colmenas (1-10)"""
+    """Verifica y crea las tablas necesarias si no existen"""
     conn = get_db_connection()
     if not conn:
         return False
@@ -72,15 +179,92 @@ def verificar_tablas_colmenas():
     try:
         cursor = conn.cursor()
         
-        for i in range(1, 11):
-            table_name = f"colmena_{i}"
-            cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS {table_name} (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-                numero_colmena INT NOT NULL
-            )
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS apiarios (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nombre VARCHAR(50) NOT NULL,
+            ubicacion VARCHAR(100),
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+        
+        cursor.execute("SELECT COUNT(*) FROM apiarios")
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+            INSERT INTO apiarios (nombre, ubicacion) VALUES 
+            ('Norte', 'Zona norte de la finca'),
+            ('Centro', 'Zona central de la finca'),
+            ('Sur', 'Zona sur de la finca')
             """)
+        
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS colmenas (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            numero_colmena INT NOT NULL,
+            id_apiario INT NOT NULL,
+            
+            actividad_piqueras ENUM('Baja', 'Media', 'Alta'),
+            poblacion_abejas ENUM('Baja', 'Media', 'Alta'),
+            cuadros_alimento INT,
+            cuadros_cria INT,
+            
+            estado_colmena ENUM(
+                'Cámara de cría',
+                'Cámara de cría y producción',
+                'Cámara de cría y doble alza de producción'
+            ),
+            
+            estado_sanitario ENUM(
+                'Presencia barroa',
+                'Presencia de polilla',
+                'Presencia de curruncho',
+                'Mortalidad- malformación en nodrizas',
+                'Ninguno'
+            ),
+            
+            limpieza_arveneses ENUM('Si', 'No'),
+            estado_postura ENUM('Huevo', 'Larva y pupa', 'Mortalidad', 'Zanganeras'),
+            distribucion_postura ENUM('No hay postura', 'dispersa', 'uniforme'),
+            
+            almacenamiento_alimento ENUM(
+                'Existe pan de abeja',
+                'Almacenamiento de néctar',
+                'Bajo almacenamiento'
+            ),
+            
+            tiene_camara_produccion ENUM('Si', 'No'),
+            tipo_camara_produccion ENUM('Media alza', 'Alza profunda', 'No aplica'),
+            
+            numero_cuadros_produccion INT,
+            cuadros_estampados INT,
+            cuadros_estirados INT,
+            cuadros_llenado INT,
+            cuadros_operculados INT,
+            porcentaje_operculo VARCHAR(20),
+            cuadros_cosecha INT,
+            kilos_cosecha DECIMAL(5,2),
+            
+            observaciones TEXT,
+            fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            
+            FOREIGN KEY (id_apiario) REFERENCES apiarios(id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        """)
+        
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS config_preguntas (
+            id VARCHAR(50) PRIMARY KEY,
+            pregunta TEXT,
+            tipo VARCHAR(20),
+            obligatoria BOOLEAN,
+            orden INT,
+            min_val INT DEFAULT NULL,
+            max_val INT DEFAULT NULL,
+            opciones TEXT DEFAULT NULL,
+            depende_de VARCHAR(50) DEFAULT NULL,
+            activa BOOLEAN DEFAULT TRUE
+        )
+        """)
         
         conn.commit()
         return True
@@ -90,26 +274,64 @@ def verificar_tablas_colmenas():
     finally:
         if conn.is_connected():
             conn.close()
-            
-def get_column_info(table_name):
-    """Obtiene información de las columnas de una tabla"""
+
+def obtener_apiarios():
+    """Obtiene la lista de apiarios disponibles"""
     conn = get_db_connection()
     if not conn:
         return None
         
     try:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute(f"SHOW COLUMNS FROM {table_name}")
-        columns = cursor.fetchall()
-        
-        # Mapear tipos ENUM a opciones
-        for col in columns:
-            if col['Type'].startswith('enum'):
-                col['Options'] = re.findall(r"'(.*?)'", col['Type'])
-        return columns
+        cursor.execute("SELECT id, nombre, ubicacion FROM apiarios")
+        return cursor.fetchall()
     except Error as err:
-        hablar(f"Error al obtener columnas: {err.msg}")
+        hablar(f"Error al obtener apiarios: {err.msg}")
         return None
+    finally:
+        if conn.is_connected():
+            conn.close()
+
+def obtener_colmenas_apiario(id_apiario):
+    """Obtiene las colmenas de un apiario específico"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+        
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+        SELECT id, numero_colmena 
+        FROM colmenas 
+        WHERE id_apiario = %s
+        ORDER BY numero_colmena
+        """, (id_apiario,))
+        return cursor.fetchall()
+    except Error as err:
+        hablar(f"Error al obtener colmenas: {err.msg}")
+        return None
+    finally:
+        if conn.is_connected():
+            conn.close()
+
+def crear_colmena(numero_colmena, id_apiario):
+    """Crea una nueva colmena en el apiario especificado"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+        
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+        INSERT INTO colmenas (numero_colmena, id_apiario)
+        VALUES (%s, %s)
+        """, (numero_colmena, id_apiario))
+        conn.commit()
+        return True
+    except Error as err:
+        print(f"Error al crear colmena: {err}")
+        conn.rollback()
+        return False
     finally:
         if conn.is_connected():
             conn.close()
@@ -124,39 +346,20 @@ def cargar_preguntas_desde_bd():
     try:
         cursor = conn.cursor(dictionary=True)
         
-        # 1. Verificar si existe la tabla config_preguntas y tiene las columnas necesarias
-        cursor.execute("""
-        SELECT COUNT(*) as existe 
-        FROM information_schema.tables 
-        WHERE table_schema = DATABASE() AND table_name = 'config_preguntas'
-        """)
-        existe_tabla = cursor.fetchone()['existe']
+        # Modificar esta parte para acceder correctamente al resultado
+        cursor.execute("SELECT COUNT(*) as total FROM config_preguntas")
+        count_result = cursor.fetchone()
+        count = count_result['total'] if count_result else 0
         
-        if existe_tabla:
-            # Verificar si la tabla tiene las columnas necesarias
-            cursor.execute("""
-            SELECT COLUMN_NAME 
-            FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'config_preguntas'
-            """)
-            columnas = {row['COLUMN_NAME'] for row in cursor.fetchall()}
-            
-            columnas_requeridas = {'id', 'pregunta', 'tipo', 'obligatoria', 'orden', 'depende_de', 'activa'}
-            if not columnas_requeridas.issubset(columnas):
-                # La tabla existe pero no tiene la estructura correcta
-                hablar("La tabla de configuración existe pero no tiene la estructura correcta. Recreándola...")
-                cursor.execute("DROP TABLE IF EXISTS config_preguntas")
-                conn.commit()
-                existe_tabla = False
-        
-        if not existe_tabla:
-            # 2. Cargar estructura básica desde la primera colmena (para migración)
-            cursor.execute("SHOW COLUMNS FROM colmena_1")
+        if count == 0:
+            cursor.execute("SHOW COLUMNS FROM colmenas")
             columns = cursor.fetchall()
             
+            exclude_columns = {'id', 'numero_colmena', 'id_apiario', 'fecha_registro'}
             preguntas = []
+            
             for col in columns:
-                if col['Field'] in ['id', 'fecha_registro']:
+                if col['Field'] in exclude_columns:
                     continue
                     
                 pregunta = {
@@ -166,7 +369,7 @@ def cargar_preguntas_desde_bd():
                     'obligatoria': col['Null'] == 'NO',
                     'orden': len(preguntas) + 1,
                     'depende_de': None,
-                    'activa': True  # Todas las preguntas activas por defecto
+                    'activa': True
                 }
                 
                 if 'int' in col['Type'] or 'decimal' in col['Type']:
@@ -179,23 +382,6 @@ def cargar_preguntas_desde_bd():
                 
                 preguntas.append(pregunta)
             
-            # 3. Crear la tabla config_preguntas con la estructura correcta
-            cursor.execute("""
-            CREATE TABLE IF NOT EXISTS config_preguntas (
-                id VARCHAR(50) PRIMARY KEY,
-                pregunta TEXT,
-                tipo VARCHAR(20),
-                obligatoria BOOLEAN,
-                orden INT,
-                min_val INT DEFAULT NULL,
-                max_val INT DEFAULT NULL,
-                opciones TEXT DEFAULT NULL,
-                depende_de VARCHAR(50) DEFAULT NULL,
-                activa BOOLEAN DEFAULT TRUE
-            )
-            """)
-            
-            # 4. Insertar los datos iniciales
             for p in preguntas:
                 opciones_str = json.dumps(p['opciones']) if 'opciones' in p else None
                 
@@ -219,7 +405,6 @@ def cargar_preguntas_desde_bd():
             conn.commit()
             return preguntas
         else:
-            # 5. Cargar desde configuración existente
             cursor.execute("SELECT * FROM config_preguntas ORDER BY orden")
             preguntas = []
             
@@ -231,7 +416,7 @@ def cargar_preguntas_desde_bd():
                     'obligatoria': bool(row['obligatoria']),
                     'orden': row['orden'],
                     'depende_de': row['depende_de'],
-                    'activa': bool(row.get('activa', True))  # Por defecto True si no existe
+                    'activa': bool(row.get('activa', True))
                 }
                 
                 if row['tipo'] == 'numero':
@@ -250,7 +435,7 @@ def cargar_preguntas_desde_bd():
     finally:
         if conn.is_connected():
             conn.close()
-
+            
 def mostrar_preguntas(preguntas):
     print("\n" + "="*80)
     print("LISTA DE PREGUNTAS".center(80))
@@ -261,9 +446,25 @@ def mostrar_preguntas(preguntas):
         opciones = p.get('opciones', '')
         if opciones:
             opciones = ', '.join(opciones[:3]) + ('...' if len(opciones) > 3 else '')
-        # Convertir None a cadena vacía antes de formatear
         depende_de = p.get('depende_de', '') or ''
         print(f"{i:<5} {p['id']:<20} {p['pregunta']:<30} {p['tipo']:<15} {'Sí' if p['obligatoria'] else 'No':<10} {'Sí' if p.get('activa', True) else 'No':<10} {depende_de:<15} {opciones}")
+    print("="*80)
+
+def mostrar_preguntas_previo(preguntas):
+    """Muestra las preguntas que se realizarán antes de iniciar el monitoreo"""
+    print("\n" + "="*80)
+    print("PREGUNTAS A REALIZAR".center(80))
+    print("="*80)
+    
+    preguntas_activas = [p for p in preguntas if p.get('activa', True)]
+    preguntas_activas.sort(key=lambda x: x.get('orden', 0))
+    
+    for i, pregunta in enumerate(preguntas_activas, 1):
+        print(f"{i}. {pregunta['pregunta']}")
+        if pregunta['tipo'] == 'opcion':
+            print(f"   Opciones: {', '.join(f'{n+1}. {o}' for n, o in enumerate(pregunta['opciones']))}")
+        elif pregunta['tipo'] == 'numero':
+            print(f"   Rango: {pregunta.get('min', 0)} a {pregunta.get('max', 100)}")
     print("="*80)
 
 def editar_pregunta(pregunta, preguntas):
@@ -372,11 +573,11 @@ def editar_pregunta(pregunta, preguntas):
             print("Opción no válida")
 
 def agregar_pregunta(preguntas):
+    """Agrega una nueva pregunta al sistema"""
     print("\n" + "="*50)
     print("AGREGAR NUEVA PREGUNTA".center(50))
     print("="*50)
     
-    # ID de la pregunta (debe coincidir con nombre de columna)
     print("\nEl ID debe coincidir con el nombre de columna en la BD")
     print("Ejemplo: 'nueva_actividad' se convertirá en columna 'nueva_actividad'")
     pregunta_id = input("ID de la pregunta (sin espacios): ").strip().lower()
@@ -468,7 +669,6 @@ def eliminar_multiple_preguntas(preguntas):
             return False
         
         try:
-            # Procesar selección múltiple
             numeros = [int(n.strip()) for n in seleccion.split(',') if n.strip().isdigit()]
             numeros = list(set(numeros))  # Eliminar duplicados
             
@@ -476,7 +676,6 @@ def eliminar_multiple_preguntas(preguntas):
                 print("Selección inválida")
                 continue
                 
-            # Mostrar preguntas seleccionadas
             print("\nPreguntas seleccionadas para desactivar:")
             for num in numeros:
                 if 1 <= num <= len(preguntas):
@@ -488,7 +687,6 @@ def eliminar_multiple_preguntas(preguntas):
             if confirmar != 's':
                 continue
             
-            # Desactivar preguntas seleccionadas
             for num in numeros:
                 if 1 <= num <= len(preguntas):
                     preguntas[num-1]['activa'] = False
@@ -502,7 +700,6 @@ def eliminar_multiple_preguntas(preguntas):
 def activar_multiple_preguntas(preguntas):
     """Permite seleccionar y activar múltiples preguntas a la vez"""
     while True:
-        # Mostrar solo preguntas inactivas
         preguntas_inactivas = [p for p in preguntas if not p.get('activa', True)]
         if not preguntas_inactivas:
             print("No hay preguntas inactivas para activar")
@@ -518,7 +715,7 @@ def activar_multiple_preguntas(preguntas):
         seleccion = input("Números de preguntas a activar: ").strip().lower()
         
         if seleccion == '0':
-            return False  # Cancelar
+            return False
         elif seleccion == 'todos':
             confirmar = input("¿Está seguro de activar TODAS las preguntas inactivas? (s/n): ").lower()
             if confirmar == 's':
@@ -528,15 +725,13 @@ def activar_multiple_preguntas(preguntas):
             return False
         
         try:
-            # Procesar selección múltiple
             numeros = [int(n.strip()) for n in seleccion.split(',') if n.strip().isdigit()]
-            numeros = list(set(numeros))  # Eliminar duplicados
+            numeros = list(set(numeros))
             
             if not numeros:
                 print("Selección inválida")
                 continue
                 
-            # Mostrar preguntas seleccionadas
             print("\nPreguntas seleccionadas para activar:")
             for num in numeros:
                 if 1 <= num <= len(preguntas_inactivas):
@@ -548,7 +743,6 @@ def activar_multiple_preguntas(preguntas):
             if confirmar != 's':
                 continue
             
-            # Activar preguntas seleccionadas
             for num in numeros:
                 if 1 <= num <= len(preguntas_inactivas):
                     preguntas_inactivas[num-1]['activa'] = True
@@ -568,28 +762,9 @@ def aplicar_cambios_bd(preguntas):
     try:
         cursor = conn.cursor()
         
-        # 1. Crear tabla de configuración si no existe
-        cursor.execute("""
-        CREATE TABLE IF NOT EXISTS config_preguntas (
-            id VARCHAR(50) PRIMARY KEY,
-            pregunta TEXT,
-            tipo VARCHAR(20),
-            obligatoria BOOLEAN,
-            orden INT,
-            min_val INT DEFAULT NULL,
-            max_val INT DEFAULT NULL,
-            opciones TEXT DEFAULT NULL,
-            depende_de VARCHAR(50) DEFAULT NULL,
-            activa BOOLEAN DEFAULT TRUE
-        )
-        """)
-        
-        # 2. Limpiar configuración previa
         cursor.execute("DELETE FROM config_preguntas")
         
-        # 3. Guardar la nueva configuración
         for p in preguntas:
-            # Serializar opciones si es una pregunta de opción múltiple
             opciones_str = json.dumps(p['opciones']) if 'opciones' in p else None
             
             cursor.execute("""
@@ -663,42 +838,70 @@ def reordenar_preguntas(preguntas):
         elif opcion == "4":
             print("\nOrden actual:")
             for i, p in enumerate(preguntas, 1):
-                print(f"{i}. {p['pregunta']} (Orden: {p['orden']}")
+                print(f"{i}. {p['pregunta']} (Orden: {p['orden']})")
                 
         elif opcion == "5":
             return
         else:
             print("Opción no válida")
 
-def palabras_a_numero(texto):
-    """Convierte palabras de números en español a valores numéricos"""
-    numeros = {
-        'cero': 0, 'uno': 1, 'un': 1, 'una': 1,
-        'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5,
-        'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9,
-        'diez': 10, 'once': 11, 'doce': 12, 'trece': 13,
-        'catorce': 14, 'quince': 15, 'dieciseis': 16, 'dieciséis': 16,
-        'diecisiete': 17, 'dieciocho': 18, 'diecinueve': 19,
-        'veinte': 20, 'veintiuno': 21, 'veintidós': 22, 'veintitrés': 23,
-        'veinticuatro': 24, 'veinticinco': 25, 'veintiséis': 26,
-        'veintisiete': 27, 'veintiocho': 28, 'veintinueve': 29,
-        'treinta': 30, 'cuarenta': 40, 'cincuenta': 50,
-        'sesenta': 60, 'setenta': 70, 'ochenta': 80,
-        'noventa': 90, 'cien': 100
-    }
-    
-    # Manejar combinaciones como "cuarenta y cinco"
-    if ' y ' in texto:
-        partes = texto.split(' y ')
-        if len(partes) == 2:
-            num1 = numeros.get(partes[0].lower(), 0)
-            num2 = numeros.get(partes[1].lower(), 0)
-            return num1 + num2
-    
-    return numeros.get(texto.lower(), None)            
-
 # ================= MONITOREO POR VOZ =================
-def guardar_respuestas(colmena, respuestas):
+def procesar_respuesta_pregunta(pregunta, respuesta, intentos, respuestas):
+    """Procesa la respuesta a una pregunta específica"""
+    pregunta_respondida = False
+    
+    if pregunta['tipo'] == 'opcion':
+        respuesta = respuesta.lower()
+        
+        # Primero intentar reconocer números (1, 2, 3...)
+        numero_opcion = None
+        try:
+            numero_opcion = int(respuesta)
+        except ValueError:
+            numero_opcion = palabras_a_numero(respuesta)
+        
+        if numero_opcion is not None and 1 <= numero_opcion <= len(pregunta['opciones']):
+            respuestas[pregunta['id']] = pregunta['opciones'][numero_opcion-1]
+            pregunta_respondida = True
+        else:
+            # Búsqueda por texto como respaldo
+            opciones = [o.lower() for o in pregunta['opciones']]
+            for i, op in enumerate(opciones):
+                if op in respuesta or any(palabra in op for palabra in respuesta.split()):
+                    respuestas[pregunta['id']] = pregunta['opciones'][i]
+                    pregunta_respondida = True
+                    break
+        
+        if not pregunta_respondida and intentos < 2:
+            opciones_numeradas = [f"{n+1} para {o}" for n, o in enumerate(pregunta['opciones'])]
+            hablar(f"Opción no reconocida. Por favor diga el número de la opción: {', '.join(opciones_numeradas)}")
+            
+    elif pregunta['tipo'] == 'numero':
+        try:
+            num = int(respuesta)
+            min_val = pregunta.get('min', 0)
+            max_val = pregunta.get('max', 100)
+            if min_val <= num <= max_val:
+                respuestas[pregunta['id']] = num
+                pregunta_respondida = True
+            else:
+                if intentos < 2:
+                    hablar(f"El valor debe estar entre {min_val} y {max_val}")
+        except ValueError:
+            num = palabras_a_numero(respuesta)
+            if num is not None and pregunta.get('min', 0) <= num <= pregunta.get('max', 100):
+                respuestas[pregunta['id']] = num
+                pregunta_respondida = True
+            else:
+                if intentos < 2:
+                    hablar("No entendí el número. Por favor responda con un valor numérico.")
+    else:  # Tipo texto
+        respuestas[pregunta['id']] = respuesta
+        pregunta_respondida = True
+    
+    return pregunta_respondida
+
+def guardar_respuestas(respuestas):
     """Guarda las respuestas en la base de datos"""
     conn = get_db_connection()
     if not conn:
@@ -707,46 +910,21 @@ def guardar_respuestas(colmena, respuestas):
     try:
         cursor = conn.cursor()
         
-        # Preparar consulta SQL
-        table_name = f"colmena_{colmena}"
-        columns = ['fecha_registro', 'numero_colmena']  # Añadimos numero_colmena
-        values = [datetime.now().strftime('%Y-%m-%d %H:%M:%S'), colmena]  # Añadimos el número
+        columns = ['numero_colmena', 'id_apiario']
+        values = [respuestas['colmena'], respuestas['id_apiario']]
         
-        # Verificar y agregar columnas que no existen
-        cursor.execute(f"SHOW COLUMNS FROM {table_name}")
+        cursor.execute("SHOW COLUMNS FROM colmenas")
         existing_columns = {row[0] for row in cursor.fetchall()}
         
-        # Asegurarnos que numero_colmena exista en la tabla
-        if 'numero_colmena' not in existing_columns:
-            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN numero_colmena INT")
-            conn.commit()
-            existing_columns.add('numero_colmena')
-        
         for key, value in respuestas.items():
-            if key != 'colmena':  # No necesitamos guardar el número de colmena como campo adicional
-                if key not in existing_columns:
-                    try:
-                        col_type = "VARCHAR(255)"
-                        if isinstance(value, int):
-                            col_type = "INT"
-                        elif isinstance(value, float):
-                            col_type = "DECIMAL(10,2)"
-                            
-                        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {key} {col_type}")
-                        conn.commit()
-                        existing_columns.add(key)
-                        print(f"Se agregó la columna {key} a la tabla {table_name}")
-                    except Error as err:
-                        print(f"No se pudo agregar columna {key}: {err}")
-                        continue
-                
+            if key in existing_columns and key not in ['colmena', 'id_apiario']:
                 columns.append(key)
                 values.append(value)
         
         columns_str = ', '.join(columns)
         placeholders = ', '.join(['%s'] * len(values))
         
-        query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
+        query = f"INSERT INTO colmenas ({columns_str}) VALUES ({placeholders})"
         cursor.execute(query, values)
         conn.commit()
         return True
@@ -762,18 +940,55 @@ def iniciar_monitoreo_voz():
     """Función principal para el monitoreo por voz"""
     hablar("Bienvenido al sistema de monitoreo de colmenas por voz")
     
-    # Verificar que existan las tablas
     if not verificar_tablas_colmenas():
         hablar("Error en la base de datos. No se pueden verificar las tablas.")
         return
     
-    # Cargar preguntas configuradas
     preguntas = cargar_preguntas_desde_bd()
     if not preguntas:
         hablar("No se pudieron cargar las preguntas de configuración")
         return
     
-    hablar("Por favor indique el número de colmena a monitorear (del 1 al 10)")
+    hablar("A continuación se mostrarán las preguntas que se realizarán durante el monitoreo.")
+    mostrar_preguntas_previo(preguntas)
+    hablar("¿Desea continuar con el monitoreo? Por favor diga 'confirmar' para continuar o 'cancelar' para salir.")
+    
+    respuesta = None
+    while respuesta not in ['confirmar', 'cancelar']:
+        respuesta = escuchar()
+        if confirmacion_reconocida(respuesta, 'confirmar'):
+            break
+        elif respuesta and 'cancelar' in respuesta.lower():
+            hablar("Monitoreo cancelado.")
+            return
+        else:
+            hablar("No entendí su respuesta. Por favor diga 'confirmar' para continuar o 'cancelar' para salir.")
+    
+    # Seleccionar apiario
+    hablar("Por favor indique el apiario a monitorear. Opciones: Norte, Centro o Sur")
+    apiario = None
+    apiarios_disponibles = obtener_apiarios()
+    
+    while apiario is None:
+        respuesta = escuchar()
+        if respuesta:
+            for a in apiarios_disponibles:
+                if fuzz.ratio(respuesta.lower(), a['nombre'].lower()) > 70:
+                    apiario = a
+                    break
+            
+            if apiario is None:
+                hablar("Apiario no reconocido. Por favor diga Norte, Centro o Sur")
+    
+    hablar(f"Monitoreando apiario {apiario['nombre']}. A continuación indique el número de colmena.")
+    
+    # Seleccionar colmena
+    colmenas_disponibles = obtener_colmenas_apiario(apiario['id'])
+    if not colmenas_disponibles:
+        hablar(f"No hay colmenas registradas en el apiario {apiario['nombre']}")
+        return
+    
+    hablar(f"Colmenas disponibles en apiario {apiario['nombre']}: {', '.join(str(c['numero_colmena']) for c in colmenas_disponibles)}")
     colmena = None
     
     while colmena is None:
@@ -781,90 +996,78 @@ def iniciar_monitoreo_voz():
         if respuesta:
             try:
                 num = int(respuesta)
-                if 1 <= num <= 10:
+                if any(c['numero_colmena'] == num for c in colmenas_disponibles):
                     colmena = num
                 else:
-                    hablar("Por favor indique un número entre 1 y 10")
+                    hablar(f"El número {num} no corresponde a una colmena en este apiario")
             except ValueError:
-                # Intentar convertir palabras a números
                 num = palabras_a_numero(respuesta)
-                if num is not None and 1 <= num <= 10:
+                if num is not None and any(c['numero_colmena'] == num for c in colmenas_disponibles):
                     colmena = num
                 else:
-                    hablar("No entendí el número de colmena. Por favor dígalo nuevamente.")
+                    hablar("Número de colmena no reconocido. Por favor diga un número válido")
     
-    hablar(f"Monitoreando colmena {colmena}. Empezaremos con las preguntas.")
+    hablar(f"Monitoreando colmena {colmena} en apiario {apiario['nombre']}. Empezaremos con las preguntas.")
     
-    # Filtrar preguntas activas y ordenarlas
     preguntas_activas = [p for p in preguntas if p.get('activa', True)]
     preguntas_activas.sort(key=lambda x: x.get('orden', 0))
     
-    respuestas = {'colmena': colmena}
+    respuestas = {'colmena': colmena, 'id_apiario': apiario['id']}
     
     for pregunta in preguntas_activas:
-        # Verificar dependencias
         if pregunta.get('depende_de'):
             pregunta_dependencia = next((p for p in preguntas_activas if p['id'] == pregunta['depende_de']), None)
             if pregunta_dependencia and pregunta_dependencia['id'] in respuestas:
                 valor_dependencia = respuestas[pregunta_dependencia['id']]
                 if pregunta_dependencia['tipo'] == 'opcion' and valor_dependencia not in pregunta_dependencia.get('opciones', []):
-                    continue  # Saltar esta pregunta si no cumple la dependencia
+                    continue
         
+        intentos = 0
         pregunta_respondida = False
         
-        while not pregunta_respondida:
-            hablar(pregunta['pregunta'])
+        while not pregunta_respondida and intentos < 2:
+            intentos += 1
             
+            texto_pregunta = pregunta['pregunta']
             if pregunta['tipo'] == 'opcion':
-                hablar(f"Opciones disponibles: {', '.join(pregunta['opciones'])}")
+                opciones_numeradas = [f"{n+1}. {o}" for n, o in enumerate(pregunta['opciones'])]
+                texto_pregunta += f". Opciones: {', '.join(opciones_numeradas)}. Responda con el número de la opción."
             elif pregunta['tipo'] == 'numero':
-                hablar(f"Por favor responda con un número entre {pregunta.get('min', 0)} y {pregunta.get('max', 100)}")
+                texto_pregunta += f". Responda con un número entre {pregunta.get('min', 0)} y {pregunta.get('max', 100)}"
             
-            respuesta = escuchar()
+            hablar(texto_pregunta)
+            
+            respuesta = escuchar(duracion=5 if pregunta['tipo'] == 'texto' else 3)
             if not respuesta:
-                hablar("No capté su respuesta. Por favor repita.")
+                if intentos < 2:
+                    hablar("No capté su respuesta. Por favor repita.")
                 continue
                 
-            if pregunta['tipo'] == 'opcion':
-                respuesta = respuesta.lower()
-                opciones = [o.lower() for o in pregunta['opciones']]
-                
-                for i, op in enumerate(opciones):
-                    if op in respuesta:
-                        respuestas[pregunta['id']] = pregunta['opciones'][i]
-                        pregunta_respondida = True
-                        break
-                
-                if not pregunta_respondida:
-                    hablar(f"Opción no válida. Las opciones son: {', '.join(pregunta['opciones'])}")
-                    
-            elif pregunta['tipo'] == 'numero':
-                try:
-                    num = int(respuesta)
-                    min_val = pregunta.get('min', 0)
-                    max_val = pregunta.get('max', 100)
-                    if min_val <= num <= max_val:
-                        respuestas[pregunta['id']] = num
-                        pregunta_respondida = True
-                    else:
-                        hablar(f"El valor debe estar entre {min_val} y {max_val}")
-                except ValueError:
-                    # Intentar convertir palabras a números
-                    num = palabras_a_numero(respuesta)
-                    if num is not None and pregunta.get('min', 0) <= num <= pregunta.get('max', 100):
-                        respuestas[pregunta['id']] = num
-                        pregunta_respondida = True
-                    else:
-                        hablar("No entendí el número. Por favor responda con un valor numérico.")
-            else:  # Tipo texto
-                respuestas[pregunta['id']] = respuesta
-                pregunta_respondida = True
+            pregunta_respondida = procesar_respuesta_pregunta(pregunta, respuesta, intentos, respuestas)
     
-    # Guardar respuestas
-    if guardar_respuestas(colmena, respuestas):
-        hablar("Datos guardados correctamente. Monitoreo completado.")
-    else:
-        hablar("Hubo un error al guardar los datos. Por favor intente nuevamente.")
+    hablar("Resumen de respuestas:")
+    for key, value in respuestas.items():
+        if key not in ['colmena', 'id_apiario']:
+            pregunta = next((p for p in preguntas_activas if p['id'] == key), None)
+            if pregunta:
+                hablar(f"{pregunta['pregunta']}: {value}")
+    
+    hablar("¿Los datos son correctos? Por favor diga 'confirmar' para guardar o 'cancelar' para repetir el monitoreo.")
+    confirmacion = None
+    while confirmacion not in ['confirmar', 'cancelar']:
+        confirmacion = escuchar()
+        if confirmacion and 'confirmar' in confirmacion.lower():
+            if guardar_respuestas(respuestas):
+                hablar("Datos guardados correctamente. Monitoreo completado.")
+            else:
+                hablar("Hubo un error al guardar los datos. Por favor intente nuevamente.")
+            break
+        elif confirmacion and 'cancelar' in confirmacion.lower():
+            hablar("Reiniciando el monitoreo para esta colmena.")
+            iniciar_monitoreo_voz()
+            break
+        else:
+            hablar("No entendí su respuesta. Por favor diga 'confirmar' para guardar o 'cancelar' para repetir.")
 
 # ================= MENÚ DE CONFIGURACIÓN =================
 def menu_configuracion():
@@ -873,7 +1076,7 @@ def menu_configuracion():
         hablar("No se pudieron cargar las preguntas desde la BD")
         return
     
-    cambios_guardados = True  # Trackear si hay cambios no guardados
+    cambios_guardados = True
     
     while True:
         print("\n" + "="*50)
@@ -889,7 +1092,6 @@ def menu_configuracion():
         print("8. Volver al menú principal")
         print("="*50)
         
-        # Mostrar advertencia si hay cambios no guardados
         if not cambios_guardados:
             print("¡ATENCIÓN! Hay cambios no guardados".center(50))
         
@@ -932,12 +1134,176 @@ def menu_configuracion():
                 print("✗ Error al guardar cambios")
         elif opcion == "8":
             if cambios_guardados:
-                return  # Volver sin confirmación si ya está todo guardado
+                return
             confirmar = input("¿Salir sin guardar cambios? (s/n): ").lower()
             if confirmar == 's':
                 return
         else:
             print("Opción no válida")
+
+# ================= MENÚ DE GESTIÓN DE APIARIOS =================
+def menu_gestion_apiarios():
+    """Menú para gestionar apiarios y colmenas"""
+    while True:
+        print("\n" + "="*50)
+        print("GESTIÓN DE APIARIOS Y COLMENAS".center(50))
+        print("="*50)
+        print("1. Listar apiarios y colmenas")
+        print("2. Agregar apiario")
+        print("3. Editar apiario")
+        print("4. Agregar colmena a apiario")
+        print("5. Volver al menú principal")
+        print("="*50)
+        
+        opcion = input("Selección (1-5): ").strip()
+        
+        if opcion == "1":
+            listar_apiarios_colmenas()
+        elif opcion == "2":
+            agregar_apiario()
+        elif opcion == "3":
+            editar_apiario()
+        elif opcion == "4":
+            agregar_colmena_a_apiario()
+        elif opcion == "5":
+            return
+        else:
+            print("Opción no válida")
+
+def listar_apiarios_colmenas():
+    """Muestra la lista de apiarios y sus colmenas"""
+    apiarios = obtener_apiarios()
+    if not apiarios:
+        print("No hay apiarios registrados")
+        return
+    
+    print("\n" + "="*80)
+    print("LISTA DE APIARIOS Y COLMENAS".center(80))
+    print("="*80)
+    for apiario in apiarios:
+        print(f"\nAPIARIO: {apiario['nombre']} - {apiario['ubicacion']}")
+        colmenas = obtener_colmenas_apiario(apiario['id'])
+        if colmenas:
+            print(f"Colmenas: {', '.join(str(c['numero_colmena']) for c in colmenas)}")
+        else:
+            print("No tiene colmenas asignadas")
+    print("="*80)
+
+def agregar_apiario():
+    """Agrega un nuevo apiario"""
+    print("\n" + "="*50)
+    print("AGREGAR NUEVO APIARIO".center(50))
+    print("="*50)
+    
+    nombre = input("Nombre del apiario: ").strip()
+    ubicacion = input("Ubicación: ").strip()
+    
+    if not nombre:
+        print("El nombre es obligatorio")
+        return
+    
+    conn = get_db_connection()
+    if not conn:
+        return
+        
+    try:
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO apiarios (nombre, ubicacion) VALUES (%s, %s)", (nombre, ubicacion))
+        conn.commit()
+        print(f"Apiario '{nombre}' agregado correctamente")
+    except Error as err:
+        print(f"Error al agregar apiario: {err}")
+        conn.rollback()
+    finally:
+        if conn.is_connected():
+            conn.close()
+
+def editar_apiario():
+    """Edita un apiario existente"""
+    apiarios = obtener_apiarios()
+    if not apiarios:
+        print("No hay apiarios para editar")
+        return
+    
+    print("\nApiarios disponibles:")
+    for i, apiario in enumerate(apiarios, 1):
+        print(f"{i}. {apiario['nombre']} - {apiario['ubicacion']}")
+    
+    try:
+        seleccion = int(input("Seleccione apiario a editar (0 para cancelar): "))
+        if seleccion == 0:
+            return
+        if 1 <= seleccion <= len(apiarios):
+            apiario = apiarios[seleccion-1]
+            
+            nuevo_nombre = input(f"Nuevo nombre [{apiario['nombre']}]: ").strip() or apiario['nombre']
+            nueva_ubicacion = input(f"Nueva ubicación [{apiario['ubicacion']}]: ").strip() or apiario['ubicacion']
+            
+            conn = get_db_connection()
+            if conn:
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                    UPDATE apiarios 
+                    SET nombre = %s, ubicacion = %s 
+                    WHERE id = %s
+                    """, (nuevo_nombre, nueva_ubicacion, apiario['id']))
+                    conn.commit()
+                    print("Apiario actualizado correctamente")
+                except Error as err:
+                    print(f"Error al actualizar apiario: {err}")
+                    conn.rollback()
+                finally:
+                    if conn.is_connected():
+                        conn.close()
+    except ValueError:
+        print("Selección inválida")
+
+def agregar_colmena_a_apiario():
+    """Agrega una nueva colmena a un apiario"""
+    apiarios = obtener_apiarios()
+    if not apiarios:
+        print("No hay apiarios registrados")
+        return
+    
+    print("\nApiarios disponibles:")
+    for i, apiario in enumerate(apiarios, 1):
+        print(f"{i}. {apiario['nombre']}")
+    
+    try:
+        seleccion = int(input("Seleccione apiario (0 para cancelar): "))
+        if seleccion == 0:
+            return
+        if 1 <= seleccion <= len(apiarios):
+            apiario = apiarios[seleccion-1]
+            
+            while True:
+                try:
+                    numero_colmena = int(input("Número de la nueva colmena: "))
+                    
+                    conn = get_db_connection()
+                    if conn:
+                        cursor = conn.cursor()
+                        cursor.execute("""
+                        SELECT COUNT(*) FROM colmenas 
+                        WHERE id_apiario = %s AND numero_colmena = %s
+                        """, (apiario['id'], numero_colmena))
+                        existe = cursor.fetchone()[0]
+                        
+                        if existe:
+                            print(f"Ya existe una colmena con el número {numero_colmena} en este apiario")
+                            continue
+                            
+                        if crear_colmena(numero_colmena, apiario['id']):
+                            print(f"Colmena {numero_colmena} agregada correctamente al apiario {apiario['nombre']}")
+                            break
+                except ValueError:
+                    print("Debe ingresar un número entero")
+                finally:
+                    if conn and conn.is_connected():
+                        conn.close()
+    except ValueError:
+        print("Selección inválida")
 
 # ================= FUNCIÓN PRINCIPAL =================
 def main():
@@ -947,16 +1313,19 @@ def main():
         print("="*50)
         print("1. Iniciar monitoreo por voz")
         print("2. Configurar preguntas")
-        print("3. Salir")
+        print("3. Gestionar apiarios")
+        print("4. Salir")
         print("="*50)
         
-        opcion = input("Seleccione una opción (1-3): ").strip()
+        opcion = input("Seleccione una opción (1-4): ").strip()
         
         if opcion == "1":
             iniciar_monitoreo_voz()
         elif opcion == "2":
             menu_configuracion()
         elif opcion == "3":
+            menu_gestion_apiarios()
+        elif opcion == "4":
             hablar("Saliendo del sistema. ¡Hasta pronto!")
             break
         else:

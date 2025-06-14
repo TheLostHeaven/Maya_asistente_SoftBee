@@ -14,6 +14,8 @@ import json
 import winsound
 import threading
 from fuzzywuzzy import fuzz
+import json
+from pathlib import Path
 
 # Configuración inicial
 load_dotenv()
@@ -26,6 +28,92 @@ warnings.filterwarnings("ignore", message="FP16 is not supported on CPU")
 WHISPER_MODEL = "small"
 model = whisper.load_model(WHISPER_MODEL)
 
+# ================= FUNCION PARA CELULAR =================
+
+def es_dispositivo_movil():
+    """Determina si el código se ejecuta en un dispositivo móvil"""
+    try:
+        # Para Android
+        if 'ANDROID_STORAGE' in os.environ:
+            return True
+        # Para iOS (aproximación)
+        if 'HOME' in os.environ and 'Mobile' in os.environ['HOME']:
+            return True
+        return False
+    except:
+        return False
+    
+def cargar_monitoreos_pendientes():
+    """Carga todos los monitoreos pendientes de sincronizar desde archivos JSON"""
+    try:
+        temp_dir = Path("monitoreos_temp")
+        if not temp_dir.exists():
+            return []
+            
+        monitoreos = []
+        for archivo in temp_dir.glob("monitoreo_*.json"):
+            try:
+                with open(archivo, 'r', encoding='utf-8') as f:
+                    datos = json.load(f)
+                    datos['_archivo'] = str(archivo)  # Guardamos la ruta para luego borrar
+                    monitoreos.append(datos)
+            except json.JSONDecodeError as e:
+                print(f"Error al leer archivo {archivo}: {e}")
+                continue
+                
+        return monitoreos
+    except Exception as e:
+        print(f"Error al cargar monitoreos pendientes: {e}")
+        return []
+    
+def sincronizar_monitoreos_pendientes():
+    """Sincroniza todos los monitoreos pendientes con la base de datos"""
+    if not es_dispositivo_movil():
+        print("La sincronización solo está disponible en dispositivos móviles")
+        return False
+        
+    monitoreos = cargar_monitoreos_pendientes()
+    if not monitoreos:
+        print("No hay monitoreos pendientes por sincronizar")
+        return True
+        
+    print(f"\nHay {len(monitoreos)} monitoreos pendientes por sincronizar")
+    
+    for i, monitoreo in enumerate(monitoreos, 1):
+        archivo = monitoreo.pop('_archivo')  # Eliminamos la ruta del archivo
+        print(f"\nSincronizando monitoreo {i}/{len(monitoreos)}...")
+        
+        # Usamos la función original de guardado (que ahora usará MySQL)
+        if guardar_respuestas(monitoreo):
+            # Si se guardó correctamente, eliminamos el archivo temporal
+            try:
+                os.remove(archivo)
+                print("✓ Sincronizado correctamente")
+            except Exception as e:
+                print(f"✓ Sincronizado pero error al borrar temporal: {e}")
+        else:
+            print("✗ Error al sincronizar este monitoreo")
+            return False
+            
+    return True
+
+def guardar_monitoreo_temp(datos):
+    """Guarda los datos de monitoreo en un archivo temporal JSON"""
+    try:
+        temp_dir = Path("monitoreos_temp")
+        temp_dir.mkdir(exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = temp_dir / f"monitoreo_{timestamp}.json"
+        
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(datos, f, ensure_ascii=False, indent=2)
+            
+        return True
+    except Exception as e:
+        print(f"Error al guardar temporalmente: {e}")
+        return False
+    
 # ================= FUNCIONES DE AUDIO =================
 def hablar(texto):
     """Función para sintetizar voz"""
@@ -902,40 +990,45 @@ def procesar_respuesta_pregunta(pregunta, respuesta, intentos, respuestas):
     return pregunta_respondida
 
 def guardar_respuestas(respuestas):
-    """Guarda las respuestas en la base de datos"""
-    conn = get_db_connection()
-    if not conn:
-        return False
-        
-    try:
-        cursor = conn.cursor()
-        
-        columns = ['numero_colmena', 'id_apiario']
-        values = [respuestas['colmena'], respuestas['id_apiario']]
-        
-        cursor.execute("SHOW COLUMNS FROM colmenas")
-        existing_columns = {row[0] for row in cursor.fetchall()}
-        
-        for key, value in respuestas.items():
-            if key in existing_columns and key not in ['colmena', 'id_apiario']:
-                columns.append(key)
-                values.append(value)
-        
-        columns_str = ', '.join(columns)
-        placeholders = ', '.join(['%s'] * len(values))
-        
-        query = f"INSERT INTO colmenas ({columns_str}) VALUES ({placeholders})"
-        cursor.execute(query, values)
-        conn.commit()
-        return True
-    except Error as err:
-        print(f"Error al guardar respuestas: {err}")
-        conn.rollback()
-        return False
-    finally:
-        if conn.is_connected():
-            conn.close()
-
+    """Guarda las respuestas en la base de datos o en archivo temporal según el dispositivo"""
+    if not es_dispositivo_movil():
+        # Versión original para computador con MySQL
+        conn = get_db_connection()
+        if not conn:
+            return False
+            
+        try:
+            cursor = conn.cursor()
+            
+            columns = ['numero_colmena', 'id_apiario']
+            values = [respuestas['colmena'], respuestas['id_apiario']]
+            
+            cursor.execute("SHOW COLUMNS FROM colmenas")
+            existing_columns = {row[0] for row in cursor.fetchall()}
+            
+            for key, value in respuestas.items():
+                if key in existing_columns and key not in ['colmena', 'id_apiario']:
+                    columns.append(key)
+                    values.append(value)
+            
+            columns_str = ', '.join(columns)
+            placeholders = ', '.join(['%s'] * len(values))
+            
+            query = f"INSERT INTO colmenas ({columns_str}) VALUES ({placeholders})"
+            cursor.execute(query, values)
+            conn.commit()
+            return True
+        except Error as err:
+            print(f"Error al guardar respuestas: {err}")
+            conn.rollback()
+            return False
+        finally:
+            if conn.is_connected():
+                conn.close()
+    else:
+        # Versión para móvil (guardar en JSON)
+        return guardar_monitoreo_temp(respuestas)
+    
 def iniciar_monitoreo_voz():
     """Función principal para el monitoreo por voz"""
     hablar("Bienvenido al sistema de monitoreo de colmenas por voz")
@@ -1058,7 +1151,10 @@ def iniciar_monitoreo_voz():
         confirmacion = escuchar()
         if confirmacion and 'confirmar' in confirmacion.lower():
             if guardar_respuestas(respuestas):
-                hablar("Datos guardados correctamente. Monitoreo completado.")
+                if es_dispositivo_movil():
+                    hablar("Datos guardados localmente. Podrás sincronizarlos cuando tengas conexión.")
+                else:
+                    hablar("Datos guardados correctamente. Monitoreo completado.")
             else:
                 hablar("Hubo un error al guardar los datos. Por favor intente nuevamente.")
             break
@@ -1314,10 +1410,14 @@ def main():
         print("1. Iniciar monitoreo por voz")
         print("2. Configurar preguntas")
         print("3. Gestionar apiarios")
-        print("4. Salir")
+        if es_dispositivo_movil():
+            print("4. Sincronizar datos pendientes")
+            print("5. Salir")
+        else:
+            print("4. Salir")
         print("="*50)
         
-        opcion = input("Seleccione una opción (1-4): ").strip()
+        opcion = input("Seleccione una opción (1-{}): ".format(5 if es_dispositivo_movil() else 4)).strip()
         
         if opcion == "1":
             iniciar_monitoreo_voz()
@@ -1325,7 +1425,9 @@ def main():
             menu_configuracion()
         elif opcion == "3":
             menu_gestion_apiarios()
-        elif opcion == "4":
+        elif opcion == "4" and es_dispositivo_movil():
+            sincronizar_monitoreos_pendientes()
+        elif opcion == str(4 if not es_dispositivo_movil() else 5):
             hablar("Saliendo del sistema. ¡Hasta pronto!")
             break
         else:

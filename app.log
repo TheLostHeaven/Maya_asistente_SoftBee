@@ -1,0 +1,121 @@
+2025-06-14 15:40:01,982 - INFO - package: mysql.connector.plugins
+2025-06-14 15:40:01,983 - INFO - plugin_name: caching_sha2_password
+2025-06-14 15:40:01,984 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 15:40:02,205 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 15:40:11,277 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 15:40:11,278 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 15:40:14,798 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-06-14 15:40:14,798 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-14 15:40:14,811 - INFO -  * Restarting with stat
+2025-06-14 15:40:15,499 - INFO - package: mysql.connector.plugins
+2025-06-14 15:40:15,499 - INFO - plugin_name: caching_sha2_password
+2025-06-14 15:40:15,500 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 15:40:15,733 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 15:40:22,984 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 15:40:22,984 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 15:40:26,807 - WARNING -  * Debugger is active!
+2025-06-14 15:40:26,823 - INFO -  * Debugger PIN: 620-239-905
+2025-06-14 15:45:10,837 - INFO - 127.0.0.1 - - [14/Jun/2025 15:45:10] "[33mGET /api HTTP/1.1[0m" 404 -
+2025-06-14 15:45:10,890 - INFO - 127.0.0.1 - - [14/Jun/2025 15:45:10] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-06-14 15:45:16,474 - INFO - 127.0.0.1 - - [14/Jun/2025 15:45:16] "[33mGET / HTTP/1.1[0m" 404 -
+2025-06-14 15:50:21,133 - INFO - package: mysql.connector.plugins
+2025-06-14 15:50:21,134 - INFO - plugin_name: caching_sha2_password
+2025-06-14 15:50:21,136 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 15:50:21,530 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 15:50:33,813 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 15:50:33,814 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 15:50:39,225 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-06-14 15:50:39,226 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-14 15:50:39,229 - INFO -  * Restarting with stat
+2025-06-14 15:50:40,285 - INFO - package: mysql.connector.plugins
+2025-06-14 15:50:40,285 - INFO - plugin_name: caching_sha2_password
+2025-06-14 15:50:40,287 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 15:50:40,672 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 15:50:51,973 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 15:50:51,973 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 15:50:57,542 - WARNING -  * Debugger is active!
+2025-06-14 15:50:57,555 - INFO -  * Debugger PIN: 620-239-905
+2025-06-14 15:51:31,398 - INFO - Cargadas 6 preguntas desde la BD
+2025-06-14 15:51:31,404 - INFO - 127.0.0.1 - - [14/Jun/2025 15:51:31] "GET /api/preguntas HTTP/1.1" 200 -
+2025-06-14 15:52:04,018 - INFO - Cargadas 6 preguntas desde la BD
+2025-06-14 15:52:04,024 - INFO - 127.0.0.1 - - [14/Jun/2025 15:52:04] "GET /api/preguntas HTTP/1.1" 200 -
+2025-06-14 15:52:04,114 - INFO - 127.0.0.1 - - [14/Jun/2025 15:52:04] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-06-14 15:52:36,720 - INFO - 127.0.0.1 - - [14/Jun/2025 15:52:36] "[33mGET / HTTP/1.1[0m" 404 -
+2025-06-14 15:53:03,075 - INFO - 127.0.0.1 - - [14/Jun/2025 15:53:03] "GET /api/apiarios HTTP/1.1" 200 -
+2025-06-14 15:53:19,185 - INFO - Cargadas 6 preguntas desde la BD
+2025-06-14 15:53:19,217 - INFO - Actualizadas 7 preguntas en la BD
+2025-06-14 15:53:19,220 - INFO - 127.0.0.1 - - [14/Jun/2025 15:53:19] "[35m[1mPOST /api/preguntas HTTP/1.1[0m" 201 -
+2025-06-14 15:54:13,606 - INFO - 127.0.0.1 - - [14/Jun/2025 15:54:13] "[31m[1mPOST /api/voz/escuchar HTTP/1.1[0m" 415 -
+2025-06-14 15:55:22,370 - INFO -  * Detected change in 'C:\\PROYECTO FINAL\\back\\v4 - API\\controlador.py', reloading
+2025-06-14 15:55:23,528 - INFO -  * Restarting with stat
+2025-06-14 15:55:24,735 - INFO - package: mysql.connector.plugins
+2025-06-14 15:55:24,735 - INFO - plugin_name: caching_sha2_password
+2025-06-14 15:55:24,737 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 15:55:25,105 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 15:55:35,908 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 15:55:35,909 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 15:55:41,623 - WARNING -  * Debugger is active!
+2025-06-14 15:55:41,631 - INFO -  * Debugger PIN: 620-239-905
+2025-06-14 15:55:56,389 - INFO - 127.0.0.1 - - [14/Jun/2025 15:55:56] "[31m[1mPOST /api/voz/escuchar HTTP/1.1[0m" 400 -
+2025-06-14 15:56:11,438 - INFO - 127.0.0.1 - - [14/Jun/2025 15:56:11] "POST /api/voz/escuchar HTTP/1.1" 200 -
+2025-06-14 16:01:24,876 - INFO - Cargadas 7 preguntas desde la BD
+2025-06-14 16:01:24,879 - INFO - 127.0.0.1 - - [14/Jun/2025 16:01:24] "GET /api/preguntas HTTP/1.1" 200 -
+2025-06-14 16:05:55,285 - INFO -  * Detected change in 'C:\\PROYECTO FINAL\\back\\v4 - API\\controlador.py', reloading
+2025-06-14 16:05:56,561 - INFO -  * Restarting with stat
+2025-06-14 16:05:57,907 - INFO - package: mysql.connector.plugins
+2025-06-14 16:05:57,907 - INFO - plugin_name: caching_sha2_password
+2025-06-14 16:05:57,910 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 16:05:58,298 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 16:06:10,234 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 16:06:10,235 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 16:06:15,874 - WARNING -  * Debugger is active!
+2025-06-14 16:06:15,881 - INFO -  * Debugger PIN: 620-239-905
+2025-06-14 16:09:49,039 - INFO -  * Detected change in 'C:\\PROYECTO FINAL\\back\\v4 - API\\controlador.py', reloading
+2025-06-14 16:09:50,163 - INFO -  * Restarting with stat
+2025-06-14 16:09:51,406 - INFO - package: mysql.connector.plugins
+2025-06-14 16:09:51,406 - INFO - plugin_name: caching_sha2_password
+2025-06-14 16:09:51,419 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 16:09:51,805 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 16:10:02,764 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 16:10:02,764 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 16:10:07,825 - WARNING -  * Debugger is active!
+2025-06-14 16:10:07,832 - INFO -  * Debugger PIN: 620-239-905
+2025-06-14 16:10:50,921 - INFO -  * Detected change in 'C:\\PROYECTO FINAL\\back\\v4 - API\\controlador.py', reloading
+2025-06-14 16:10:52,023 - INFO -  * Restarting with stat
+2025-06-14 16:10:53,119 - INFO - package: mysql.connector.plugins
+2025-06-14 16:10:53,120 - INFO - plugin_name: caching_sha2_password
+2025-06-14 16:10:53,123 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 16:10:53,504 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 16:11:04,286 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 16:11:04,287 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 16:11:09,400 - WARNING -  * Debugger is active!
+2025-06-14 16:11:09,407 - INFO -  * Debugger PIN: 620-239-905
+2025-06-14 16:20:40,075 - INFO -  * Detected change in 'C:\\PROYECTO FINAL\\back\\v4 - API\\controlador.py', reloading
+2025-06-14 16:20:41,259 - INFO -  * Restarting with stat
+2025-06-14 16:20:42,305 - INFO - package: mysql.connector.plugins
+2025-06-14 16:20:42,305 - INFO - plugin_name: caching_sha2_password
+2025-06-14 16:20:42,307 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 16:20:42,507 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 16:20:54,547 - INFO - package: mysql.connector.plugins
+2025-06-14 16:20:54,548 - INFO - plugin_name: caching_sha2_password
+2025-06-14 16:20:54,549 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 16:20:54,733 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 16:21:01,565 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 16:21:01,565 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 16:21:04,928 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-06-14 16:21:04,928 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-14 16:21:04,932 - INFO -  * Restarting with stat
+2025-06-14 16:21:05,574 - INFO - package: mysql.connector.plugins
+2025-06-14 16:21:05,575 - INFO - plugin_name: caching_sha2_password
+2025-06-14 16:21:05,576 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 16:21:05,753 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 16:21:12,885 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 16:21:12,885 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 16:21:15,945 - WARNING -  * Debugger is active!
+2025-06-14 16:21:15,970 - INFO -  * Debugger PIN: 620-239-905
+2025-06-14 16:21:29,362 - INFO - 127.0.0.1 - - [14/Jun/2025 16:21:29] "[35m[1mPOST /api/monitoreo/iniciar HTTP/1.1[0m" 500 -
+2025-06-14 16:21:51,679 - INFO - 127.0.0.1 - - [14/Jun/2025 16:21:51] "[35m[1mPOST /api/monitoreo/iniciar HTTP/1.1[0m" 500 -
+2025-06-14 16:23:15,535 - INFO -  * Detected change in 'C:\\PROYECTO FINAL\\back\\v4 - API\\controlador.py', reloading

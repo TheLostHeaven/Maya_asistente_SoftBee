@@ -119,3 +119,20 @@
 2025-06-14 16:21:29,362 - INFO - 127.0.0.1 - - [14/Jun/2025 16:21:29] "[35m[1mPOST /api/monitoreo/iniciar HTTP/1.1[0m" 500 -
 2025-06-14 16:21:51,679 - INFO - 127.0.0.1 - - [14/Jun/2025 16:21:51] "[35m[1mPOST /api/monitoreo/iniciar HTTP/1.1[0m" 500 -
 2025-06-14 16:23:15,535 - INFO -  * Detected change in 'C:\\PROYECTO FINAL\\back\\v4 - API\\controlador.py', reloading
+2025-06-14 16:23:16,425 - INFO -  * Restarting with stat
+2025-06-14 16:23:17,275 - INFO - package: mysql.connector.plugins
+2025-06-14 16:23:17,275 - INFO - plugin_name: caching_sha2_password
+2025-06-14 16:23:17,277 - INFO - AUTHENTICATION_PLUGIN_CLASS: MySQLCachingSHA2PasswordAuthPlugin
+2025-06-14 16:23:17,453 - INFO - Pool de conexiones inicializado correctamente
+2025-06-14 16:23:24,349 - INFO - Imported existing <module 'comtypes.gen' from 'C:\\Users\\LENOVO\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python313\\site-packages\\comtypes\\gen\\__init__.py'>
+2025-06-14 16:23:24,349 - INFO - Using writeable comtypes cache directory: 'C:\Users\LENOVO\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\comtypes\gen'
+2025-06-14 16:23:27,196 - WARNING -  * Debugger is active!
+2025-06-14 16:23:27,201 - INFO -  * Debugger PIN: 620-239-905
+2025-06-14 16:23:45,112 - INFO - 127.0.0.1 - - [14/Jun/2025 16:23:45] "[35m[1mPOST /api/monitoreo/iniciar HTTP/1.1[0m" 500 -
+2025-06-14 16:24:02,260 - INFO - 127.0.0.1 - - [14/Jun/2025 16:24:02] "[35m[1mPOST /api/monitoreo/iniciar HTTP/1.1[0m" 500 -
+2025-06-14 16:24:58,520 - INFO - Cargadas 7 preguntas desde la BD
+2025-06-14 16:24:58,523 - INFO - 127.0.0.1 - - [14/Jun/2025 16:24:58] "GET /api/preguntas HTTP/1.1" 200 -
+2025-06-14 16:25:06,634 - INFO - 127.0.0.1 - - [14/Jun/2025 16:25:06] "GET /api/apiarios HTTP/1.1" 200 -
+2025-06-14 16:25:21,508 - INFO - 127.0.0.1 - - [14/Jun/2025 16:25:21] "[31m[1mPOST /api/apiarios HTTP/1.1[0m" 415 -
+2025-06-14 16:25:57,599 - INFO - Apiario 'Nuevo Apiario' agregado correctamente
+2025-06-14 16:25:57,601 - INFO - 127.0.0.1 - - [14/Jun/2025 16:25:57] "[35m[1mPOST /api/apiarios HTTP/1.1[0m" 201 -

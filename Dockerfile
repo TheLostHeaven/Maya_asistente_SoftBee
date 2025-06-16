@@ -1,8 +1,12 @@
 FROM python:3.10-slim
 
-# Instala dependencias del sistema (Git + PortAudio)
+# Instala dependencias del sistema
 RUN apt-get update && \
-    apt-get install -y git libportaudio2 && \
+    apt-get install -y \
+    libportaudio2 \
+    espeak \           # Motor de síntesis de voz para Linux
+    ffmpeg \           # Para procesamiento de audio
+    git && \           # Para instalar whisper desde GitHub
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

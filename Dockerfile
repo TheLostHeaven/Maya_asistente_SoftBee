@@ -4,9 +4,9 @@ FROM python:3.10-slim
 RUN apt-get update && \
     apt-get install -y \
     libportaudio2 \
-    espeak \           # Motor de síntesis de voz para Linux
-    ffmpeg \           # Para procesamiento de audio
-    git && \           # Para instalar whisper desde GitHub
+    espeak \
+    ffmpeg \
+    git && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

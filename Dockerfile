@@ -9,8 +9,6 @@ RUN apt-get update && \
     git && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-COPY . .
 
 # Instala dependencias de Python
 RUN pip install --no-cache-dir -r requirements.txt

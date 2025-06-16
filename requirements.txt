@@ -87,4 +87,4 @@ PyAudio==0.2.14; sys_platform == 'win32'
 pypiwin32==223; sys_platform == 'win32'
 
 # Audio processing (Linux/macOS)
-sounddevice==0.4.6; sys_platform != 'win32'
+sounddevice==0.4.6

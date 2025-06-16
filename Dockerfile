@@ -9,8 +9,14 @@ RUN apt-get update && \
     git && \
     rm -rf /var/lib/apt/lists/*
 
+# Primero copia solo requirements.txt
+WORKDIR /app
+COPY requirements.txt .
 
 # Instala dependencias de Python
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Luego copia el resto del código
+COPY . .
 
 CMD ["python", "controlador.py"]

@@ -1,4 +1,3 @@
-# logica.py
 import os
 import whisper
 import sounddevice as sd
@@ -11,7 +10,7 @@ import re
 import warnings
 from mysql.connector import Error
 import json
-import winsound
+import pygame  # 👈 Reemplazamos winsound por pygame.mixer
 import threading
 from fuzzywuzzy import fuzz
 from pathlib import Path
@@ -26,6 +25,10 @@ model = whisper.load_model("small")
 engine = pyttsx3.init()
 engine.setProperty('rate', 180)
 engine.setProperty('voice', 'spanish')
+
+# Inicializar pygame.mixer (requiere un archivo WAV para el pitido)
+pygame.mixer.init()
+BEEP_SOUND = pygame.mixer.Sound("beep.wav")  # 👈 Necesitas un archivo beep.wav
 
 class Logica:
     # Variables de clase compartidas
@@ -261,8 +264,8 @@ class Logica:
 
     @staticmethod
     def emitir_pitido(frecuencia=1000, duracion=200):
-        """Emite un pitido para indicar que el sistema está escuchando"""
-        winsound.Beep(frecuencia, duracion)
+        """Emite un pitido usando pygame.mixer en lugar de winsound"""
+        BEEP_SOUND.play()
 
     @staticmethod
     def escuchar(duracion=3):
@@ -310,7 +313,7 @@ class Logica:
         threading.Thread(target=Logica.engine.say, args=(texto,)).start()
         Logica.engine.runAndWait()
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     # Ejemplo de uso
     Logica.hablar("Sistema de monitoreo de colmenas inicializado")
     respuesta = Logica.escuchar(5)

@@ -1,4 +1,4 @@
-# controlador.py
+# controlador.py (modificado)
 from flask import Flask, request, jsonify
 from modelo import DatabaseModel
 from logica import Logica
@@ -7,12 +7,12 @@ import sounddevice as sd
 import numpy as np
 import pyttsx3
 import threading
-import winsound
+import pygame  
 from datetime import datetime
 import json
 
 # ================= CONFIGURACIÓN INICIAL =================
-app = Flask(__name__)
+app = Flask(_name_)
 
 # Configuración para síntesis de voz
 engine = pyttsx3.init()
@@ -23,10 +23,14 @@ engine.setProperty('voice', 'spanish')
 WHISPER_MODEL = "small"
 model = whisper.load_model(WHISPER_MODEL)
 
+# Inicializar pygame.mixer
+pygame.mixer.init()
+BEEP_SOUND = pygame.mixer.Sound("beep.wav")  # 👈 Archivo WAV para el pitido
+
 # ================= FUNCIONES AUXILIARES =================
 def emitir_pitido(frecuencia=1000, duracion=200):
-    """Emite un pitido para indicar que el sistema está escuchando"""
-    winsound.Beep(frecuencia, duracion)
+    """Emite un pitido usando pygame.mixer"""
+    BEEP_SOUND.play()
 
 def procesar_respuesta_numerica(respuesta):
     """Convierte respuesta de voz a número"""
@@ -61,7 +65,7 @@ def obtener_preguntas():
     """Obtiene todas las preguntas configuradas"""
     preguntas = DatabaseModel.cargar_preguntas_desde_bd()
     if preguntas is None:
-        return jsonify({'error': 'No se pudieron cargar las preguntas'}), 500
+        return jsonify({'error': 'No se pudieron cargar las preguntas desde el get'}), 500
     return jsonify(preguntas)
 
 @app.route('/api/preguntas', methods=['POST'])
@@ -73,7 +77,7 @@ def crear_pregunta():
     
     preguntas = DatabaseModel.cargar_preguntas_desde_bd()
     if preguntas is None:
-        return jsonify({'error': 'No se pudieron cargar las preguntas'}), 500
+        return jsonify({'error': 'No se pudieron cargar las preguntas desde el post'}), 500
     
     if any(p['id'] == data.get('id') for p in preguntas):
         return jsonify({'error': 'El ID de pregunta ya existe'}), 400
@@ -93,7 +97,7 @@ def actualizar_pregunta(pregunta_id):
     
     preguntas = DatabaseModel.cargar_preguntas_desde_bd()
     if preguntas is None:
-        return jsonify({'error': 'No se pudieron cargar las preguntas'}), 500
+        return jsonify({'error': 'No se pudieron cargar las preguntas desde el put'}), 500
     
     for i, p in enumerate(preguntas):
         if p['id'] == pregunta_id:
@@ -109,7 +113,7 @@ def eliminar_pregunta(pregunta_id):
     """Elimina (desactiva) una pregunta"""
     preguntas = DatabaseModel.cargar_preguntas_desde_bd()
     if preguntas is None:
-        return jsonify({'error': 'No se pudieron cargar las preguntas'}), 500
+        return jsonify({'error': 'No se pudieron cargar las preguntas desde delete'}), 500
     
     for p in preguntas:
         if p['id'] == pregunta_id:
@@ -142,9 +146,9 @@ def crear_apiario():
         return jsonify({'error': 'Error al crear el apiario'}), 500
 
 @app.route('/api/apiarios/<int:apiario_id>', methods=['GET'])
-def obtener_apiario(apiario_id):
+def obtener_apiarios(apiario_id):
     """Obtiene un apiario específico"""
-    apiario = DatabaseModel.obtener_apiario(apiario_id)
+    apiario = DatabaseModel.obtener_apiarios(apiario_id)
     if apiario is None:
         return jsonify({'error': 'Error al obtener el apiario'}), 500
     if not apiario:
@@ -455,5 +459,6 @@ def escuchar_audio():
         return jsonify({'error': f"Error al escuchar: {str(e)}"}), 500
 
 # ================= INICIO DE LA APLICACIÓN =================
-if __name__ == '__main__':
-    app.run(debug=True)
+# Cambia la parte final del archivo a:
+if _name_ == "_main_":
+    app.run(host="0.0.0.0", port=8080)  # Para Flask

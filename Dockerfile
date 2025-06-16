@@ -1,22 +1,16 @@
-FROM python:3.10-slim
+FROM python:3.9-slim
 
-# Instala dependencias del sistema
-RUN apt-get update && \
-    apt-get install -y \
-    libportaudio2 \
+# Instala dependencias del sistema (espeak + mpg123 si usas gTTS)
+RUN apt-get update && apt-get install -y \
     espeak \
-    ffmpeg \
-    git && \
-    rm -rf /var/lib/apt/lists/*
+    mpg123 \  # Solo necesario si usas gTTS
+    && rm -rf /var/lib/apt/lists/*
 
-# Primero copia solo requirements.txt
 WORKDIR /app
-COPY requirements.txt .
 
-# Instala dependencias de Python
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Luego copia el resto del código
 COPY . .
 
 CMD ["python", "controlador.py"]

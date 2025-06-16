@@ -21,7 +21,7 @@ load_dotenv()
 warnings.filterwarnings("ignore", message="FP16 is not supported on CPU")
 
 # Inicialización de componentes de audio
-model = whisper.load_model("small")
+model = whisper.load_model("tiny")
 engine = pyttsx3.init()
 engine.setProperty('rate', 180)
 engine.setProperty('voice', 'spanish')

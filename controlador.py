@@ -20,7 +20,7 @@ engine.setProperty('rate', 180)
 engine.setProperty('voice', 'spanish')
 
 # Configuración para reconocimiento de voz
-WHISPER_MODEL = "small"
+WHISPER_MODEL = "tiny"
 model = whisper.load_model(WHISPER_MODEL)
 
 # Inicializar pygame.mixer

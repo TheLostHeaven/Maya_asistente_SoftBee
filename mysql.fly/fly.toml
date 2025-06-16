@@ -1,0 +1,33 @@
+# fly.toml app configuration file generated for monitoreo-abejas-twilight-voice-4407 on 2025-06-16T07:58:29-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'monitoreo-abejas-twilight-voice-4407'
+primary_region = 'bog'
+[build]
+  image = "mysql:8"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+MYSQL_DATABASE = "monitoreo_abejas"
+MYSQL_ROOT_PASSWORD = "Doramas2019"
+
+[[vm]]
+  memory = '2gb'
+  cpu_kind = 'shared'
+  cpus = 2
+
+[[mounts]]
+  source = "data_volume"
+  destination = "/var/lib/mysql"
+
+[services]
+  [[services.ports]]
+    port = 3306
